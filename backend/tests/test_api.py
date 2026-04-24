@@ -1,14 +1,22 @@
 
 """Integration tests for automated ML assistant FastAPI endpoints."""
 
+from dataclasses import replace
 from datetime import datetime, timezone
 
 from fastapi.testclient import TestClient
 import pytest
 
+from app import main as main_module
 from app.main import app, storage
 
 client = TestClient(app)
+
+
+def _override_settings(monkeypatch, **changes):
+    """Apply temporary runtime setting overrides for endpoint security tests."""
+
+    monkeypatch.setattr(main_module, "settings", replace(main_module.settings, **changes))
 
 
 @pytest.fixture(autouse=True)
@@ -204,3 +212,38 @@ def test_annotation_task_lifecycle_supports_corrections():
     list_payload = list_response.json()
     assert list_payload["total"] == 1
     assert list_payload["tasks"][0]["task_id"] == task_id
+
+
+def test_diagnostics_requires_api_key_when_configured(monkeypatch):
+    """Diagnostics endpoint should enforce API key when runtime key is configured."""
+
+    _override_settings(monkeypatch, api_key="secret-key")
+
+    unauthorized = client.post(
+        "/diagnostics",
+        json={
+            "target_column": "target",
+            "rows": [{"feature_a": 10, "target": 1}, {"feature_a": 8, "target": 0}],
+        },
+    )
+    assert unauthorized.status_code == 401
+
+    authorized = client.post(
+        "/diagnostics",
+        headers={"X-API-Key": "secret-key"},
+        json={
+            "target_column": "target",
+            "rows": [{"feature_a": 10, "target": 1}, {"feature_a": 8, "target": 0}],
+        },
+    )
+    assert authorized.status_code == 200
+
+
+def test_health_is_public_even_when_api_key_enabled(monkeypatch):
+    """Health endpoint should stay unauthenticated for uptime probes."""
+
+    _override_settings(monkeypatch, api_key="secret-key")
+
+    response = client.get("/health")
+    assert response.status_code == 200
+    assert response.json()["status"] in {"ok", "degraded"}

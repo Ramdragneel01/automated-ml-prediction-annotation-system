@@ -14,6 +14,7 @@ Current integration coverage includes:
 5. `/diagnostics` feature profiling and hint generation.
 6. `/recommendations` ranking output for supported task types.
 7. Annotation task lifecycle: create, update corrections, and status-filter list.
+8. API key enforcement behavior for protected endpoints.
 
 ## Frontend
 

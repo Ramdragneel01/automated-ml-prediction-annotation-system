@@ -3,6 +3,21 @@
 
 All notable changes to this project are documented in this file.
 
+## [0.2.1] - 2026-04-24
+
+### Added
+
+1. Optional API key authentication for protected backend routes via `MLOPS_API_KEY`.
+2. Backend API tests for API key enforcement and public health access.
+3. Repository collaboration context file `.claude/CLAUDE.md`.
+4. Release workflow `.github/workflows/release.yml`.
+5. Root-level `ARCHITECTURE.md` summary document.
+
+### Changed
+
+1. CI workflow expanded with dependency audit checks.
+2. API, deployment, testing, and README docs updated for auth and release parity.
+
 ## [0.2.0] - 2026-04-21
 
 ### Added

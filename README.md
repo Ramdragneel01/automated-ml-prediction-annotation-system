@@ -68,3 +68,15 @@ npm run dev -- --host 0.0.0.0 --port 4173
 3. API reference: `docs/API.md`
 4. Deployment guide: `docs/DEPLOYMENT.md`
 5. Testing guide: `docs/TESTING.md`
+
+## Limitations
+
+1. API key auth is shared-secret based and not yet integrated with managed identity.
+2. Telemetry storage currently uses SQLite and is not horizontally scaled.
+3. Request throttling is in-memory and per-instance.
+
+## Next Roadmap
+
+1. Add managed identity and role-based access controls for API clients.
+2. Move telemetry and annotation persistence to production-grade managed datastore.
+3. Add distributed rate limiting and queue-depth alerting.

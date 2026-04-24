@@ -19,6 +19,10 @@ Response fields:
 
 Runs dataset diagnostics for model-planning workflows.
 
+Security behavior:
+1. Requires `X-API-Key` header when `MLOPS_API_KEY` is configured.
+2. Protected by request-size validation and structured error responses.
+
 Request body:
 
 1. `rows`: array of objects (1..5000)
@@ -38,6 +42,9 @@ Response body:
 
 Ranks model-family candidates from diagnostics and historical telemetry hints.
 
+Security behavior:
+1. Requires `X-API-Key` header when `MLOPS_API_KEY` is configured.
+
 Request body:
 
 1. `task_type`: `classification`, `regression`, `clustering`, `time_series`, `matrix_factorization`, `anomaly`
@@ -54,6 +61,9 @@ Response body:
 
 Creates an annotation task seeded with pre-labeled candidates.
 
+Security behavior:
+1. Requires `X-API-Key` header when `MLOPS_API_KEY` is configured.
+
 Request body:
 
 1. `dataset_name`
@@ -67,6 +77,9 @@ Annotation task object with task id, status, candidates, and correction count.
 ## GET /annotations/tasks
 
 Lists annotation tasks.
+
+Security behavior:
+1. Requires `X-API-Key` header when `MLOPS_API_KEY` is configured.
 
 Query params:
 
@@ -82,9 +95,15 @@ Response body:
 
 Fetches one annotation task by id.
 
+Security behavior:
+1. Requires `X-API-Key` header when `MLOPS_API_KEY` is configured.
+
 ## POST /annotations/tasks/{task_id}/corrections
 
 Appends correction items and transitions task status.
+
+Security behavior:
+1. Requires `X-API-Key` header when `MLOPS_API_KEY` is configured.
 
 Request body:
 
@@ -94,6 +113,10 @@ Request body:
 ## POST /log
 
 Ingest one inference event.
+
+Security behavior:
+1. Requires `X-API-Key` header when `MLOPS_API_KEY` is configured.
+2. Subject to in-memory rate limiting.
 
 Request body:
 1. `model_name` (string)
@@ -111,6 +134,9 @@ Response body:
 ## GET /summary
 
 Returns recent events and aggregate telemetry.
+
+Security behavior:
+1. Requires `X-API-Key` header when `MLOPS_API_KEY` is configured.
 
 Query params:
 1. `limit` (1..500)
@@ -132,7 +158,14 @@ Prometheus scrape endpoint.
 
 Exports recent logs.
 
+Security behavior:
+1. Requires `X-API-Key` header when `MLOPS_API_KEY` is configured.
+
 Query params:
 1. `format`: `json` or `csv`
 2. `limit`: 1..5000
 3. `model_name`: optional
+
+Common error statuses for protected routes:
+1. `401` for missing or invalid API key when auth is enabled.
+2. `429` for write-ingestion rate-limit exceedance on `/log`.

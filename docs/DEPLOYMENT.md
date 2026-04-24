@@ -19,7 +19,8 @@
 5. `MLOPS_SUMMARY_SIZE`
 6. `MLOPS_DRIFT_THRESHOLD`
 7. `MLOPS_RATE_LIMIT_PER_MINUTE`
-8. `VITE_API_URL`
+8. `MLOPS_API_KEY` (optional; enables API key auth for protected endpoints)
+9. `VITE_API_URL`
 
 Default local values are provided in `.env.example`.
 
@@ -30,12 +31,18 @@ Default local values are provided in `.env.example`.
 3. `MLOPS_SUMMARY_SIZE`
 4. `MLOPS_DRIFT_THRESHOLD`
 5. `MLOPS_RATE_LIMIT_PER_MINUTE`
+6. `MLOPS_API_KEY`
 
 1. Store telemetry and annotation task data in a durable volume.
 2. Restrict CORS to trusted dashboard domains.
 3. Enable TLS at ingress/reverse-proxy layer.
 4. Add alert rules for API errors, queue backlog growth, and latency spikes.
 5. Run vulnerability scanning for base images before release.
+
+## CI and Release
+
+1. CI workflow: `.github/workflows/ci.yml`
+2. Release workflow: `.github/workflows/release.yml`
 
 ## Rollback
 
