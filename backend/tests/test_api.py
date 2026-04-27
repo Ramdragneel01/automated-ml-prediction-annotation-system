@@ -44,6 +44,9 @@ def test_health_endpoint_reports_backend_status():
 
     payload = response.json()
     assert payload["status"] in {"ok", "degraded"}
+    assert payload["storage_backend"] in {"sqlite", "postgresql"}
+    assert payload["rate_limiter_backend"] in {"in_memory", "redis"}
+    assert isinstance(payload["rate_limiter_available"], bool)
     assert "db_available" in payload
     assert "total_logs" in payload
 

@@ -11,12 +11,15 @@ Response fields:
 1. `status`: `ok` or `degraded`
 2. `environment`: runtime environment value
 3. `timestamp`: ISO-8601 UTC
-4. `db_path`: configured SQLite path
-5. `db_available`: boolean
-6. `auth_enforced`: API key enforcement toggle
-7. `rate_limiter_active_windows`: active per-client limiter windows
-8. `total_logs`: integer
-9. `total_annotation_tasks`: integer
+4. `storage_backend`: `sqlite` or `postgresql`
+5. `db_path`: configured connection target
+6. `db_available`: boolean
+7. `auth_enforced`: API key enforcement toggle
+8. `rate_limiter_backend`: `in_memory` or `redis`
+9. `rate_limiter_available`: limiter backend health
+10. `rate_limiter_active_windows`: active per-client limiter windows (in-memory only)
+11. `total_logs`: integer
+12. `total_annotation_tasks`: integer
 
 ## POST /diagnostics
 
@@ -120,7 +123,7 @@ Ingest one inference event.
 
 Security behavior:
 1. Requires `X-API-Key` header when `MLOPS_ENFORCE_API_KEY=true`.
-2. Subject to in-memory rate limiting.
+2. Subject to fixed-window rate limiting (Redis-backed when `MLOPS_REDIS_URL` is configured).
 
 Request body:
 1. `model_name` (string)

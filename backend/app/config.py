@@ -45,6 +45,8 @@ class Settings:
     app_name: str
     app_version: str
     db_path: str
+    database_url: str | None
+    redis_url: str | None
     cors_origins: list[str]
     summary_size: int
     drift_confidence_threshold: float
@@ -66,6 +68,8 @@ def get_settings() -> Settings:
     app_name = os.getenv("MLOPS_APP_NAME", "automated-ml-prediction-annotation-system")
     app_version = os.getenv("MLOPS_APP_VERSION", "0.2.0")
     db_path = os.getenv("MLOPS_DB_PATH", "./data/automl_assistant.db")
+    database_url = os.getenv("MLOPS_DATABASE_URL", "").strip() or None
+    redis_url = os.getenv("MLOPS_REDIS_URL", "").strip() or None
 
     origin_value = os.getenv(
         "MLOPS_CORS_ORIGINS",
@@ -95,6 +99,8 @@ def get_settings() -> Settings:
         app_name=app_name,
         app_version=app_version,
         db_path=db_path,
+        database_url=database_url,
+        redis_url=redis_url,
         cors_origins=cors_origins,
         summary_size=summary_size,
         drift_confidence_threshold=drift_confidence_threshold,
