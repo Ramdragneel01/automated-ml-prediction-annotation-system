@@ -34,6 +34,13 @@ Python, FastAPI, Pydantic, SQLite, Prometheus, React, Vite.
 docker compose up
 ```
 
+Production-like run:
+
+```bash
+cp .env.example .env
+docker compose -f docker-compose.prod.yml up --build -d
+```
+
 ## Service Endpoints
 
 1. API: http://127.0.0.1:8000

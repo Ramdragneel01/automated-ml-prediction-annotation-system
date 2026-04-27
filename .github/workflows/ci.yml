@@ -58,7 +58,7 @@ jobs:
 
       - name: Test
         run: pytest -q --maxfail=1 --cov=. --cov-report=term-missing:skip-covered
-          --cov-fail-under=50
+          --cov-fail-under=65
 
       - name: Dependency audit
         run: |
