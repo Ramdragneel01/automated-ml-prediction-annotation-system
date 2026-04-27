@@ -26,7 +26,7 @@ Deliver a practical MVP that:
 
 ## Tech Stack
 
-Python, FastAPI, Pydantic, SQLite, Prometheus, React, Vite.
+Python, FastAPI, Pydantic, SQLite/PostgreSQL, Redis, Prometheus, React, Vite, Traefik.
 
 ## Quick Start
 
@@ -39,6 +39,13 @@ Production-like run:
 ```bash
 cp .env.example .env
 docker compose -f docker-compose.prod.yml up --build -d
+```
+
+HA run (PostgreSQL + Redis + TLS reverse proxy):
+
+```bash
+cp .env.ha.example .env.ha
+docker compose --env-file .env.ha -f docker-compose.ha.yml up --build -d
 ```
 
 ## Service Endpoints
@@ -79,8 +86,8 @@ npm run dev -- --host 0.0.0.0 --port 4173
 ## Limitations
 
 1. API key auth is shared-secret based and not yet integrated with managed identity.
-2. Telemetry storage currently uses SQLite and is not horizontally scaled.
-3. Request throttling is in-memory and per-instance.
+2. HA mode currently uses a single PostgreSQL instance and a single Redis instance (no multi-node failover).
+3. TLS automation in HA mode depends on public DNS and Let's Encrypt availability.
 
 ## Next Roadmap
 

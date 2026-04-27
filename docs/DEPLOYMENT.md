@@ -5,6 +5,7 @@
 
 1. Development mode uses `docker-compose.yml` (hot reload, bind mounts).
 2. Production mode uses `docker-compose.prod.yml` (built images, resource limits, health checks).
+3. High-availability mode uses `docker-compose.ha.yml` (PostgreSQL, Redis, and Traefik TLS ingress).
 
 ## Production Quick Start
 
@@ -26,6 +27,33 @@ docker compose -f docker-compose.prod.yml up -d --build
    2. UI: `http://127.0.0.1:4173`
    3. Metrics: `http://127.0.0.1:9090`
 
+## HA Quick Start (PostgreSQL + Redis + TLS)
+
+1. Copy `.env.ha.example` to `.env.ha`.
+2. Set required values in `.env.ha`:
+   1. `PUBLIC_DOMAIN` (example: `mlops.example.com`)
+   2. `ACME_EMAIL`
+   3. `POSTGRES_PASSWORD`
+   4. `MLOPS_API_KEY`
+3. Ensure your DNS contains:
+   1. `PUBLIC_DOMAIN` -> host public IP
+   2. `api.PUBLIC_DOMAIN` -> host public IP
+4. Start the HA stack:
+
+```bash
+docker compose --env-file .env.ha -f docker-compose.ha.yml up -d --build
+```
+
+5. Scale API replicas when needed:
+
+```bash
+docker compose --env-file .env.ha -f docker-compose.ha.yml up -d --scale backend=3
+```
+
+6. Validate:
+   1. `https://PUBLIC_DOMAIN`
+   2. `https://api.PUBLIC_DOMAIN/health`
+
 ## Environment Variables
 
 | Variable | Required In Prod | Default | Purpose |
@@ -34,7 +62,9 @@ docker compose -f docker-compose.prod.yml up -d --build
 | `MLOPS_APP_VERSION` | No | `0.2.0` | API version metadata |
 | `MLOPS_ENV` | Yes | `development` | Runtime mode (`development`, `staging`, `production`, `test`) |
 | `MLOPS_LOG_LEVEL` | No | `INFO` | API log verbosity |
-| `MLOPS_DB_PATH` | Yes | `./data/automl_assistant.db` | SQLite location |
+| `MLOPS_DB_PATH` | No | `./data/automl_assistant.db` | SQLite location for local/single-instance mode |
+| `MLOPS_DATABASE_URL` | No | empty | PostgreSQL URL (recommended for HA mode) |
+| `MLOPS_REDIS_URL` | No | empty | Redis URL for distributed rate limiting |
 | `MLOPS_CORS_ORIGINS` | Yes | local origins | Comma-separated allowed UI origins |
 | `MLOPS_SUMMARY_SIZE` | No | `100` | Summary sample size |
 | `MLOPS_DRIFT_THRESHOLD` | No | `0.55` | Drift flag threshold |
@@ -54,10 +84,11 @@ docker compose -f docker-compose.prod.yml up -d --build
 
 ## Reliability Checklist
 
-1. Keep `app-data` and `prometheus-data` volumes persisted.
+1. Keep persisted volumes for SQLite/PostgreSQL/Redis/Prometheus based on your selected mode.
 2. Monitor `/health`, `/metrics`, and API error rates.
 3. Set alerts for elevated `429` rates and drift flags.
-4. Use a managed SQL database if you need multi-node writes and horizontal scale.
+4. In HA mode, use PostgreSQL and Redis health checks as gating dependencies.
+5. Scale backend replicas behind Traefik for horizontal API availability.
 
 ## CI and Release
 
