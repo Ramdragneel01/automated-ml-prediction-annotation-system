@@ -9,18 +9,21 @@ Returns service and storage readiness.
 
 Response fields:
 1. `status`: `ok` or `degraded`
-2. `timestamp`: ISO-8601 UTC
-3. `db_path`: configured SQLite path
-4. `db_available`: boolean
-5. `total_logs`: integer
-6. `total_annotation_tasks`: integer
+2. `environment`: runtime environment value
+3. `timestamp`: ISO-8601 UTC
+4. `db_path`: configured SQLite path
+5. `db_available`: boolean
+6. `auth_enforced`: API key enforcement toggle
+7. `rate_limiter_active_windows`: active per-client limiter windows
+8. `total_logs`: integer
+9. `total_annotation_tasks`: integer
 
 ## POST /diagnostics
 
 Runs dataset diagnostics for model-planning workflows.
 
 Security behavior:
-1. Requires `X-API-Key` header when `MLOPS_API_KEY` is configured.
+1. Requires `X-API-Key` header when `MLOPS_ENFORCE_API_KEY=true`.
 2. Protected by request-size validation and structured error responses.
 
 Request body:
@@ -43,7 +46,7 @@ Response body:
 Ranks model-family candidates from diagnostics and historical telemetry hints.
 
 Security behavior:
-1. Requires `X-API-Key` header when `MLOPS_API_KEY` is configured.
+1. Requires `X-API-Key` header when `MLOPS_ENFORCE_API_KEY=true`.
 
 Request body:
 
@@ -62,7 +65,7 @@ Response body:
 Creates an annotation task seeded with pre-labeled candidates.
 
 Security behavior:
-1. Requires `X-API-Key` header when `MLOPS_API_KEY` is configured.
+1. Requires `X-API-Key` header when `MLOPS_ENFORCE_API_KEY=true`.
 
 Request body:
 
@@ -79,12 +82,13 @@ Annotation task object with task id, status, candidates, and correction count.
 Lists annotation tasks.
 
 Security behavior:
-1. Requires `X-API-Key` header when `MLOPS_API_KEY` is configured.
+1. Requires `X-API-Key` header when `MLOPS_ENFORCE_API_KEY=true`.
 
 Query params:
 
 1. `limit`: 1..500
-2. `status`: optional `pending`, `in_review`, `completed`
+2. `offset`: optional 0..10000
+3. `status`: optional `pending`, `in_review`, `completed`
 
 Response body:
 
@@ -96,14 +100,14 @@ Response body:
 Fetches one annotation task by id.
 
 Security behavior:
-1. Requires `X-API-Key` header when `MLOPS_API_KEY` is configured.
+1. Requires `X-API-Key` header when `MLOPS_ENFORCE_API_KEY=true`.
 
 ## POST /annotations/tasks/{task_id}/corrections
 
 Appends correction items and transitions task status.
 
 Security behavior:
-1. Requires `X-API-Key` header when `MLOPS_API_KEY` is configured.
+1. Requires `X-API-Key` header when `MLOPS_ENFORCE_API_KEY=true`.
 
 Request body:
 
@@ -115,7 +119,7 @@ Request body:
 Ingest one inference event.
 
 Security behavior:
-1. Requires `X-API-Key` header when `MLOPS_API_KEY` is configured.
+1. Requires `X-API-Key` header when `MLOPS_ENFORCE_API_KEY=true`.
 2. Subject to in-memory rate limiting.
 
 Request body:
@@ -136,7 +140,7 @@ Response body:
 Returns recent events and aggregate telemetry.
 
 Security behavior:
-1. Requires `X-API-Key` header when `MLOPS_API_KEY` is configured.
+1. Requires `X-API-Key` header when `MLOPS_ENFORCE_API_KEY=true`.
 
 Query params:
 1. `limit` (1..500)
@@ -159,7 +163,7 @@ Prometheus scrape endpoint.
 Exports recent logs.
 
 Security behavior:
-1. Requires `X-API-Key` header when `MLOPS_API_KEY` is configured.
+1. Requires `X-API-Key` header when `MLOPS_ENFORCE_API_KEY=true`.
 
 Query params:
 1. `format`: `json` or `csv`
@@ -168,4 +172,5 @@ Query params:
 
 Common error statuses for protected routes:
 1. `401` for missing or invalid API key when auth is enabled.
-2. `429` for write-ingestion rate-limit exceedance on `/log`.
+2. `413` for request payloads exceeding configured body size.
+3. `429` for write-ingestion rate-limit exceedance on `/log`.

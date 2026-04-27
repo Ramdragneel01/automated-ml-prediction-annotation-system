@@ -197,21 +197,26 @@ class LogStorage:
             connection.commit()
             return int(cursor.lastrowid)
 
-    def list_annotation_tasks(self, limit: int = 100, status: str | None = None) -> list[AnnotationTask]:
-        """Return recent annotation tasks with optional status filtering."""
+    def list_annotation_tasks(
+        self,
+        limit: int = 100,
+        status: str | None = None,
+        offset: int = 0,
+    ) -> list[AnnotationTask]:
+        """Return recent annotation tasks with optional status filtering and offset pagination."""
 
         if status:
             query = (
                 "SELECT id, dataset_name, model_name, status, created_at, candidates_json, corrections_json "
-                "FROM annotation_tasks WHERE status = ? ORDER BY created_at DESC LIMIT ?"
+                "FROM annotation_tasks WHERE status = ? ORDER BY created_at DESC LIMIT ? OFFSET ?"
             )
-            params: tuple[Any, ...] = (status, limit)
+            params: tuple[Any, ...] = (status, limit, offset)
         else:
             query = (
                 "SELECT id, dataset_name, model_name, status, created_at, candidates_json, corrections_json "
-                "FROM annotation_tasks ORDER BY created_at DESC LIMIT ?"
+                "FROM annotation_tasks ORDER BY created_at DESC LIMIT ? OFFSET ?"
             )
-            params = (limit,)
+            params = (limit, offset)
 
         with self._connect() as connection:
             rows = connection.execute(query, params).fetchall()

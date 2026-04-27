@@ -214,10 +214,46 @@ def test_annotation_task_lifecycle_supports_corrections():
     assert list_payload["tasks"][0]["task_id"] == task_id
 
 
+def test_annotation_task_list_supports_offset_pagination():
+    """Annotation listing should support offset pagination for larger queues."""
+
+    for index in range(3):
+        create_response = client.post(
+            "/annotations/tasks",
+            json={
+                "dataset_name": f"dataset-{index}",
+                "model_name": "yolov5s",
+                "candidates": [
+                    {
+                        "candidate_id": f"frame-{index}",
+                        "image_uri": f"s3://bucket/frame-{index}.jpg",
+                        "predicted_label": "person",
+                        "confidence": 0.8,
+                        "bbox": [10.0, 20.0, 100.0, 200.0],
+                    }
+                ],
+            },
+        )
+        assert create_response.status_code == 200
+
+    first_page = client.get("/annotations/tasks?limit=1&offset=0")
+    second_page = client.get("/annotations/tasks?limit=1&offset=1")
+
+    assert first_page.status_code == 200
+    assert second_page.status_code == 200
+    first_payload = first_page.json()
+    second_payload = second_page.json()
+    assert first_payload["total"] == 3
+    assert second_payload["total"] == 3
+    assert len(first_payload["tasks"]) == 1
+    assert len(second_payload["tasks"]) == 1
+    assert first_payload["tasks"][0]["task_id"] != second_payload["tasks"][0]["task_id"]
+
+
 def test_diagnostics_requires_api_key_when_configured(monkeypatch):
     """Diagnostics endpoint should enforce API key when runtime key is configured."""
 
-    _override_settings(monkeypatch, api_key="secret-key")
+    _override_settings(monkeypatch, api_key="secret-key", enforce_api_key=True)
 
     unauthorized = client.post(
         "/diagnostics",
@@ -242,8 +278,26 @@ def test_diagnostics_requires_api_key_when_configured(monkeypatch):
 def test_health_is_public_even_when_api_key_enabled(monkeypatch):
     """Health endpoint should stay unauthenticated for uptime probes."""
 
-    _override_settings(monkeypatch, api_key="secret-key")
+    _override_settings(monkeypatch, api_key="secret-key", enforce_api_key=True)
 
     response = client.get("/health")
     assert response.status_code == 200
     assert response.json()["status"] in {"ok", "degraded"}
+
+
+def test_diagnostics_rejects_oversized_request_body(monkeypatch):
+    """Request middleware should reject payloads larger than configured limit."""
+
+    _override_settings(monkeypatch, max_request_body_bytes=80)
+
+    response = client.post(
+        "/diagnostics",
+        json={
+            "target_column": "target",
+            "rows": [
+                {"feature_a": 10, "target": 1, "note": "payload"},
+                {"feature_a": 8, "target": 0, "note": "payload"},
+            ],
+        },
+    )
+    assert response.status_code == 413
