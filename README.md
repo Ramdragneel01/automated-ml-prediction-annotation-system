@@ -75,7 +75,7 @@ npm ci
 npm run dev -- --host 0.0.0.0 --port 4173
 ```
 
-## Validation
+## Testing
 
 1. Backend tests: `cd backend && pytest -q`
 2. Frontend build: `cd frontend && npm run build`
@@ -89,7 +89,7 @@ npm run dev -- --host 0.0.0.0 --port 4173
 2. HA mode currently uses a single PostgreSQL instance and a single Redis instance (no multi-node failover).
 3. TLS automation in HA mode depends on public DNS and Let's Encrypt availability.
 
-## Next Roadmap
+## Roadmap
 
 1. Add managed identity and role-based access controls for API clients.
 2. Move telemetry and annotation persistence to production-grade managed datastore.
