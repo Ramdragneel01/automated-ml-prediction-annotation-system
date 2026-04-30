@@ -3,6 +3,18 @@
 
 Base URL (local): `http://127.0.0.1:8000`
 
+## Health and Readiness
+
+1. `GET /health`
+2. `GET /ready`
+3. `GET /healthz` (alias for `/health`)
+4. `GET /readyz` (alias for `/ready`)
+
+Readiness behavior:
+
+1. Returns `200` with `status=ready` when storage and rate limiter backends are available.
+2. Returns `503` with `service_not_ready` when critical dependencies are unavailable.
+
 ## GET /health
 
 Returns service and storage readiness.
@@ -174,6 +186,31 @@ Query params:
 3. `model_name`: optional
 
 Common error statuses for protected routes:
-1. `401` for missing or invalid API key when auth is enabled.
-2. `413` for request payloads exceeding configured body size.
-3. `429` for write-ingestion rate-limit exceedance on `/log`.
+All API errors return a normalized payload:
+
+```json
+{
+	"error": {
+		"code": "string",
+		"message": "string",
+		"request_id": "string",
+		"details": []
+	}
+}
+```
+
+Common error codes:
+
+1. `bad_request`
+2. `unauthorized`
+3. `payload_too_large`
+4. `validation_error`
+5. `rate_limited`
+6. `service_unavailable`
+7. `internal_error`
+
+Common error statuses for protected routes:
+1. `401` for missing or invalid API key when auth is enabled (`api_key_invalid`).
+2. `413` for request payloads exceeding configured body size (`request_too_large`).
+3. `429` for write-ingestion rate-limit exceedance on `/log` (`rate_limited`).
+4. `429` responses include `Retry-After: 60`.

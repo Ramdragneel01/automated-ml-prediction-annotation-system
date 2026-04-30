@@ -13,6 +13,28 @@ from app.main import app, storage
 client = TestClient(app)
 
 
+def _assert_error_contract(
+    response,
+    expected_status: int,
+    expected_code: str,
+    expected_message: str | None = None,
+    expect_details: bool = False,
+) -> None:
+    """Validate normalized API error contract fields."""
+
+    assert response.status_code == expected_status
+    payload = response.json()
+    assert isinstance(payload.get("error"), dict)
+    assert payload["error"]["code"] == expected_code
+    assert isinstance(payload["error"]["message"], str)
+    if expected_message is not None:
+        assert payload["error"]["message"] == expected_message
+    assert isinstance(payload["error"]["request_id"], str)
+    assert payload["error"]["request_id"]
+    if expect_details:
+        assert "details" in payload["error"]
+
+
 def _override_settings(monkeypatch, **changes):
     """Apply temporary runtime setting overrides for endpoint security tests."""
 
@@ -49,6 +71,22 @@ def test_health_endpoint_reports_backend_status():
     assert isinstance(payload["rate_limiter_available"], bool)
     assert "db_available" in payload
     assert "total_logs" in payload
+
+
+def test_probe_alias_endpoints_return_runtime_state():
+    """Readiness and probe aliases should be available for deployment checks."""
+
+    ready = client.get("/ready")
+    assert ready.status_code == 200
+    assert ready.json()["status"] == "ready"
+
+    health_alias = client.get("/healthz")
+    assert health_alias.status_code == 200
+    assert health_alias.json()["status"] in {"ok", "degraded"}
+
+    ready_alias = client.get("/readyz")
+    assert ready_alias.status_code == 200
+    assert ready_alias.json()["status"] == "ready"
 
 
 def test_log_ingest_and_summary_flow():
@@ -265,7 +303,12 @@ def test_diagnostics_requires_api_key_when_configured(monkeypatch):
             "rows": [{"feature_a": 10, "target": 1}, {"feature_a": 8, "target": 0}],
         },
     )
-    assert unauthorized.status_code == 401
+    _assert_error_contract(
+        unauthorized,
+        expected_status=401,
+        expected_code="unauthorized",
+        expected_message="api_key_invalid",
+    )
 
     authorized = client.post(
         "/diagnostics",
@@ -287,6 +330,66 @@ def test_health_is_public_even_when_api_key_enabled(monkeypatch):
     assert response.status_code == 200
     assert response.json()["status"] in {"ok", "degraded"}
 
+    ready_response = client.get("/ready")
+    assert ready_response.status_code == 200
+    assert ready_response.json()["status"] == "ready"
+
+
+def test_phase1_auth_required_contract(monkeypatch):
+    """Protected endpoints should require API key with normalized unauthorized errors."""
+
+    _override_settings(monkeypatch, api_key="phase1-secret", enforce_api_key=True)
+
+    unauthorized = client.get("/summary")
+    _assert_error_contract(
+        unauthorized,
+        expected_status=401,
+        expected_code="unauthorized",
+        expected_message="api_key_invalid",
+    )
+
+    invalid_key = client.get("/summary", headers={"X-API-Key": "wrong"})
+    _assert_error_contract(
+        invalid_key,
+        expected_status=401,
+        expected_code="unauthorized",
+        expected_message="api_key_invalid",
+    )
+
+    authorized = client.get("/summary", headers={"X-API-Key": "phase1-secret"})
+    assert authorized.status_code == 200
+
+
+def test_phase1_error_contract_response():
+    """Request validation should return normalized validation error payload."""
+
+    response = client.post("/diagnostics", json={"target_column": "target"})
+    _assert_error_contract(
+        response,
+        expected_status=422,
+        expected_code="validation_error",
+        expected_message="request_validation_failed",
+        expect_details=True,
+    )
+
+
+def test_error_responses_include_request_and_security_headers(monkeypatch):
+    """Error responses should carry request tracing and baseline security headers."""
+
+    _override_settings(monkeypatch, api_key="header-secret", enforce_api_key=True)
+    response = client.post(
+        "/diagnostics",
+        json={
+            "target_column": "target",
+            "rows": [{"feature_a": 10, "target": 1}, {"feature_a": 8, "target": 0}],
+        },
+    )
+
+    assert response.status_code == 401
+    assert response.headers.get("X-Request-ID")
+    assert response.headers.get("X-Content-Type-Options") == "nosniff"
+    assert response.headers.get("X-Frame-Options") == "DENY"
+
 
 def test_diagnostics_rejects_oversized_request_body(monkeypatch):
     """Request middleware should reject payloads larger than configured limit."""
@@ -303,4 +406,51 @@ def test_diagnostics_rejects_oversized_request_body(monkeypatch):
             ],
         },
     )
-    assert response.status_code == 413
+    _assert_error_contract(
+        response,
+        expected_status=413,
+        expected_code="payload_too_large",
+        expected_message="request_too_large",
+    )
+    assert response.headers.get("X-Request-ID")
+    assert response.headers.get("X-Content-Type-Options") == "nosniff"
+    assert response.headers.get("X-Frame-Options") == "DENY"
+
+
+def test_log_rate_limit_returns_429_with_retry_after(monkeypatch):
+    """Log ingest should return normalized 429 responses with Retry-After guidance."""
+
+    _override_settings(monkeypatch, rate_limit_per_minute=1)
+    timestamp = datetime.now(timezone.utc).isoformat()
+
+    first = client.post(
+        "/log",
+        headers={"X-Forwarded-For": "198.51.100.44"},
+        json={
+            "model_name": "risk-model-v1",
+            "latency_ms": 22.5,
+            "prediction": "approved",
+            "confidence": 0.91,
+            "timestamp": timestamp,
+        },
+    )
+    assert first.status_code == 200
+
+    second = client.post(
+        "/log",
+        headers={"X-Forwarded-For": "198.51.100.44"},
+        json={
+            "model_name": "risk-model-v1",
+            "latency_ms": 24.1,
+            "prediction": "review",
+            "confidence": 0.74,
+            "timestamp": timestamp,
+        },
+    )
+    _assert_error_contract(
+        second,
+        expected_status=429,
+        expected_code="rate_limited",
+        expected_message="rate_limited",
+    )
+    assert second.headers.get("Retry-After") == "60"

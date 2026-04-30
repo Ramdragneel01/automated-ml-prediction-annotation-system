@@ -24,8 +24,10 @@ docker compose -f docker-compose.prod.yml up -d --build
 
 4. Validate service readiness:
    1. API health: `http://127.0.0.1:8000/health`
-   2. UI: `http://127.0.0.1:4173`
-   3. Metrics: `http://127.0.0.1:9090`
+   2. API ready: `http://127.0.0.1:8000/ready`
+   3. Probe aliases: `http://127.0.0.1:8000/healthz`, `http://127.0.0.1:8000/readyz`
+   4. UI: `http://127.0.0.1:4173`
+   5. Metrics: `http://127.0.0.1:9090`
 
 ## HA Quick Start (PostgreSQL + Redis + TLS)
 
@@ -53,6 +55,7 @@ docker compose --env-file .env.ha -f docker-compose.ha.yml up -d --scale backend
 6. Validate:
    1. `https://PUBLIC_DOMAIN`
    2. `https://api.PUBLIC_DOMAIN/health`
+   3. `https://api.PUBLIC_DOMAIN/ready`
 
 ## Environment Variables
 
@@ -101,3 +104,4 @@ docker compose --env-file .env.ha -f docker-compose.ha.yml up -d --scale backend
 1. Roll back to a previous known-good image tag.
 2. Restart with the same persistent data volume.
 3. Verify `/health`, dashboard load, and annotation task listing.
+4. Verify `/ready`, `/healthz`, and `/readyz` probe checks.
