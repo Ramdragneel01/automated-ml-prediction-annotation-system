@@ -6,4 +6,4 @@ pydantic==2.11.7
 pytest==8.4.1
 httpx==0.28.1
 psycopg[binary]==3.2.13
-redis==5.2.1
+redis==7.4.0
