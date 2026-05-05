@@ -21,3 +21,18 @@ Describe what changed and why.
 1. [ ] No secrets added to source control
 2. [ ] Input validation kept/added where needed
 3. [ ] Docs updated (`README`, `API`, `DEPLOYMENT`, `TESTING`)
+
+
+## What changed
+-
+
+## Why this change
+-
+
+## Validation
+- [ ] Local checks passed
+- [ ] Tests added or updated when behavior changed
+
+## Risk and rollout
+- Risk level:
+- Rollback plan:
